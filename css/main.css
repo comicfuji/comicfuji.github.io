@@ -1169,7 +1169,7 @@ pre .javascript .function {
 }
 .links-of-author a::before,
 .links-of-author span.exturl::before {
-  background: #c83829;
+  background: #ff58f2;
   border-radius: 50%;
   content: ' ';
   display: inline-block;
@@ -2599,9 +2599,11 @@ mjx-container + br {
     font-size: 1.4em;
   }
 }
-.post-block {
-  padding-top: 50px;
-  padding-right: 70px;
-  padding-bottom: 70px;
-  padding-left: 70px;
+@media screen and (min-width: 1200px) {
+  .post-block {
+    padding-top: 50px;
+    padding-right: 70px;
+    padding-bottom: 70px;
+    padding-left: 70px;
+  }
 }
