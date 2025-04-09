@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-center-atom.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="工作原理 一言蔽之，就是利用PLL产生多个不同相位的同频时钟，对数据进行多倍采样后判决最佳采样位，将接收数据恢复输出。  如图所示，过采样恢复数据基本流程如下：  8倍过采样：生成相位分别为0，45°，90°，135°的四个时钟通过双边沿对数据进行采样，以获得8倍过采样的效果。 边沿检测：对相邻采样信号进行异或，若异或结果为1，则表示相邻信号间存在边沿。 鉴相编码：8倍过采样采用3位">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于FPGA的LVDS过采样数据恢复设计">
+<meta property="og:url" content="http://example.com/2023/38a0e7938550/index.html">
+<meta property="og:site_name" content="MIDLAKE">
+<meta property="og:description" content="工作原理 一言蔽之，就是利用PLL产生多个不同相位的同频时钟，对数据进行多倍采样后判决最佳采样位，将接收数据恢复输出。  如图所示，过采样恢复数据基本流程如下：  8倍过采样：生成相位分别为0，45°，90°，135°的四个时钟通过双边沿对数据进行采样，以获得8倍过采样的效果。 边沿检测：对相邻采样信号进行异或，若异或结果为1，则表示相邻信号间存在边沿。 鉴相编码：8倍过采样采用3位">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602142321339.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602144217393.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230529142515001.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602145248356.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602153203352.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602155604958.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602162845910.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/chosedata.drawio.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602162524650.png">
+<meta property="article:published_time" content="2023-06-02T14:55:20.000Z">
+<meta property="article:modified_time" content="2023-06-02T15:17:35.000Z">
+<meta property="article:author" content="君一">
+<meta property="article:tag" content="过采样同步">
+<meta property="article:tag" content="数据恢复">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602142321339.png">
+
+<link rel="canonical" href="http://example.com/2023/38a0e7938550/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>基于FPGA的LVDS过采样数据恢复设计 | MIDLAKE</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">MIDLAKE</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/38a0e7938550/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="君一">
+      <meta itemprop="description" content="折得梅花独自看">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MIDLAKE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于FPGA的LVDS过采样数据恢复设计
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-06-02 22:55:20" itemprop="dateCreated datePublished" datetime="2023-06-02T22:55:20+08:00">2023-06-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E9%80%9A%E4%BF%A1%E5%B7%A5%E4%BD%9C/" itemprop="url" rel="index"><span itemprop="name">通信工作</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="工作原理">工作原理</h2>
+<p>一言蔽之，就是利用PLL产生多个不同相位的同频时钟，对数据进行多倍采样后判决最佳采样位，将接收数据恢复输出。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602142321339.png"></p>
+<p>如图所示，过采样恢复数据基本流程如下：</p>
+<ol type="1">
+<li>8倍过采样：生成相位分别为0，45°，90°，135°的四个时钟通过双边沿对数据进行采样，以获得8倍过采样的效果。</li>
+<li>边沿检测：对相邻采样信号进行异或，若异或结果为1，则表示相邻信号间存在边沿。</li>
+<li>鉴相编码：8倍过采样采用3位编码，第一位编码为0，后续位置编码结果为上一个编码加1直到加到7,若遇到数据边沿，则编码又从0开始。</li>
+<li>数据恢复：为采样到数据段中间位置，以编码为3或4时的数据作为最终恢复结果。</li>
+</ol>
+<span id="more"></span>
+<p>不过在实际测试中（核心板为正点原子的ZYNQ7020），仅采用上述逻辑实现的过采样数据恢复系统有两点无法忽视的现象会对造成严重的误码率：</p>
+<ul>
+<li><p>四个时钟的相位抖动较大，采样数据出错频率不可容忍。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602144217393.png"></p></li>
+</ul>
+<p>如图所示，此处准确数据应为&lt;0000_0000&gt;，&lt;1110_0000&gt;(低位在前)，而采样出现了3位突变，导致了后续数据恢复的出错。</p>
+<ul>
+<li><p>实际传输中由于边沿毛刺和频偏的存在，1和0的长度并不总是恰好相等，因此一个时钟周期内会出现0个或2个采样判决位。如下图所示。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230529142515001.png"></p>
+<p>因此，需要对原流程进行调整，最终方案如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602145248356.png"></p></li>
+</ul>
+<p>对接收的差分数据进行缓冲互补输出，对p端数据打拍1/8bit，n端数据无延迟，利用0，90°两个相位的时钟对两路数据分别进行双边沿采样，极大地减小了时钟相位抖动的影响。</p>
+<p>此外在数据恢复单元根据周期内采样判决位的数量(0/1/2)，分别缓存相应数据后写入fifo，保证数据的完整性。</p>
+<h2 id="模块实现">模块实现</h2>
+<h3 id="差分信号处理">差分信号处理</h3>
+<p>使用原语IBUFDS_DIFF_OUT，输出互补数据。</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">IBUFDS_DIFF_OUT #(</span><br><span class="line">    <span class="variable">.DIFF_TERM</span>(<span class="string">"TRUE"</span>),   <span class="comment">// 是否为差分终端（TRUE/FALSE）</span></span><br><span class="line">    <span class="variable">.IBUF_LOW_PWR</span>(<span class="string">"FALSE"</span>), <span class="comment">// 高性能:FALSE，低功耗:TRUE</span></span><br><span class="line">    <span class="variable">.IOSTANDARD</span>(<span class="string">"LVDS25"</span>) <span class="comment">// IO电平标准</span></span><br><span class="line">   ) IBUFDS_DIFF_OUT_inst (</span><br><span class="line">    <span class="variable">.O</span>(datain_p),   <span class="comment">// 缓冲信号p端，输出</span></span><br><span class="line">    <span class="variable">.OB</span>(datain_n), <span class="comment">// 缓冲信号n端，输出</span></span><br><span class="line">    <span class="variable">.I</span>(data_p),   <span class="comment">// 接收差分信号p端，输入</span></span><br><span class="line">    <span class="variable">.IB</span>(data_n)  <span class="comment">// 接收差分信号n端，输入</span></span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+<h3 id="倍过采样同步">8倍过采样同步</h3>
+<p>对两路互补数据进行延迟，p端根据数据频率延迟1/8bit，n端延迟0bit。</p>
+<p><em>由于经过idelay即使打0拍也有固定延迟，所以n端数据也需要经过idelay。</em></p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602153203352.png"></p>
+<p>图中0°Data为延迟1/8bit的p端数据，45°Data为0延迟的n端数据。采样关系如下表。</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">时钟</th>
+<th style="text-align: center;">0°Data</th>
+<th style="text-align: center;">45°Data</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">CLK0↑</td>
+<td style="text-align: center;">sample_0°</td>
+<td style="text-align: center;">~sample_45°</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">CLK90↑</td>
+<td style="text-align: center;">sample_90°</td>
+<td style="text-align: center;">~sample_135°</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">CLK0↓</td>
+<td style="text-align: center;">sample_180°</td>
+<td style="text-align: center;">~sample_225°</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">CLK90↓</td>
+<td style="text-align: center;">sample_270°</td>
+<td style="text-align: center;">~sample_315°</td>
+</tr>
+</tbody>
+</table>
+<p>打拍使用原语idelay2。</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">IDELAYCTRL IDELAYCTRL_0 (</span><br><span class="line">    <span class="variable">.RDY</span>(RDY),       <span class="comment">// 准备信号，输出</span></span><br><span class="line">    <span class="variable">.REFCLK</span>(clk_200), <span class="comment">// 参考时钟，输入</span></span><br><span class="line">    <span class="variable">.RST</span>(!rst_n)        <span class="comment">//复位信号，输入</span></span><br><span class="line">   );</span><br><span class="line"></span><br><span class="line"><span class="comment">//p端延迟 </span></span><br><span class="line">IDELAYE2 #(</span><br><span class="line">    <span class="variable">.CINVCTRL_SEL</span>(<span class="string">"FALSE"</span>),          <span class="comment">// 动态转换时钟极性切换，未使用</span></span><br><span class="line">    <span class="variable">.DELAY_SRC</span>(<span class="string">"IDATAIN"</span>),           <span class="comment">//  IBUF输入选择IDATAIN</span></span><br><span class="line">    <span class="variable">.HIGH_PERFORMANCE_MODE</span>(<span class="string">"TRUE"</span>), <span class="comment">//是否减少时钟抖动（TRUE/FALSE）</span></span><br><span class="line">    <span class="variable">.IDELAY_TYPE</span>(<span class="string">"FIXED"</span>),     <span class="comment">// 固定延迟</span></span><br><span class="line">    <span class="variable">.IDELAY_VALUE</span>(<span class="number">10</span>),      <span class="comment">// 延迟拍数(0-31)</span></span><br><span class="line">    <span class="comment">//参考时钟200MHz的场合1tap≈78ps(=(1/200M)/64)</span></span><br><span class="line">    <span class="variable">.PIPE_SEL</span>(<span class="string">"FALSE"</span>),              <span class="comment">// pipelined模式，未使用</span></span><br><span class="line">    <span class="variable">.REFCLK_FREQUENCY</span>(<span class="number">200</span><span class="variable">.0</span>),        <span class="comment">// 参考时钟</span></span><br><span class="line">    <span class="variable">.SIGNAL_PATTERN</span>(<span class="string">"DATA"</span>)          <span class="comment">// 数据/时钟输入</span></span><br><span class="line">   )IDELAYE2_0(</span><br><span class="line">    <span class="variable">.CNTVALUEOUT</span>(cnt_delay_tap), <span class="comment">//延迟拍数，输出</span></span><br><span class="line">    <span class="variable">.DATAOUT</span>(data_0),         <span class="comment">// 延迟后的数据，输出</span></span><br><span class="line">    <span class="variable">.C</span>(clk_200),                <span class="comment">//时钟，输入</span></span><br><span class="line">    <span class="variable">.CE</span>(<span class="number">1'b0</span>),                   <span class="comment">//使能增加减少</span></span><br><span class="line">    <span class="variable">.CINVCTRL</span>(<span class="number">1'b0</span>),       <span class="comment">// 动态转换时钟极性，未使用</span></span><br><span class="line">    <span class="variable">.CNTVALUEIN</span>(<span class="number">0</span>),   		<span class="comment">//动态延迟拍数，输入，未使用</span></span><br><span class="line">    <span class="variable">.DATAIN</span>(<span class="number">1'b0</span>),           <span class="comment">//来自FPGA逻辑的数据，输入，未使用</span></span><br><span class="line">    <span class="variable">.IDATAIN</span>(datain_p),         <span class="comment">//来自IBUF的数据，输入</span></span><br><span class="line">    <span class="variable">.INC</span>(<span class="number">1'b0</span>),                 <span class="comment">//增减延迟拍数，输入，未使用</span></span><br><span class="line">    <span class="variable">.LD</span>(<span class="number">1'b0</span>),				<span class="comment">//在VARIABLE模式使用加在delay2延时的值，输入，未使用</span></span><br><span class="line">    <span class="variable">.LDPIPEEN</span>(<span class="number">1'b0</span>),       <span class="comment">//使能pipelined模式寄存器加载数据，输入，未使用</span></span><br><span class="line">    <span class="variable">.REGRST</span>(!rst_n)            <span class="comment">// 复位信号，输入</span></span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+<p>延迟后的两路数据分别用CLK0，CLK90进行采样拼接，输出采样数据为：</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//低位在前</span></span><br><span class="line">sampleout &lt; = {~sample_315,sample_270,~sample_225,sample_180,~sample_135,sample_90,~sample_45,sample_0};</span><br></pre></td></tr></table></figure>
+<h3 id="数据整型">数据整型</h3>
+<p>在实际传输中，由于存在抖动毛刺的现象，很难避免对数据采集错误的发生，毛刺分为数据中间与边沿两种情况，采用整型滤波的方式可去除数据的突变，使数据平滑。</p>
+<p>整型滤波原理如下图所示，缓存一拍采样数据d0[0]<sub>d0[7]，与当前采样数据d1[0]</sub>d1[7]，连续5个型号相加得到d_add_0~d_add_7，与阈值3'b010进行比较，大于该阈值则判断该点采样信号为1'b1，否则为1'b0。放入d_real作为模块输出。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602155604958.png"></p>
+<p>输出整型后的数据为：</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fitter_data &lt; = {(d_add_7[<span class="number">2</span>]|d_add_7[<span class="number">1</span>]&amp;d_add_7[<span class="number">0</span>]),(d_add_6[<span class="number">2</span>]|d_add_6[<span class="number">1</span>]&amp;d_add_6[<span class="number">0</span>]),(d_add_5[<span class="number">2</span>]|d_add_5[<span class="number">1</span>]&amp;d_add_5[<span class="number">0</span>]),(d_add_4[<span class="number">2</span>]|d_add_4[<span class="number">1</span>]&amp;d_add_4[<span class="number">0</span>]),(d_add_3[<span class="number">2</span>]|d_add_3[<span class="number">1</span>]&amp;d_add_3[<span class="number">0</span>]),(d_add_2[<span class="number">2</span>]|d_add_2[<span class="number">1</span>]&amp;d_add_2[<span class="number">0</span>]),(d_add_1[<span class="number">2</span>]|d_add_1[<span class="number">1</span>]&amp;d_add_1[<span class="number">0</span>]),(d_add_0[<span class="number">2</span>]|d_add_0[<span class="number">1</span>]&amp;d_add_0[<span class="number">0</span>])};</span><br></pre></td></tr></table></figure>
+<h3 id="边沿检测">边沿检测</h3>
+<p>简单的异或处理，需要缓存一拍数据。</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">assign</span> trans_data[<span class="number">0</span>]=fitter_data[<span class="number">0</span>]^q1[<span class="number">7</span>]; 	<span class="comment">//与上一个数据的最后一位进行异或</span></span><br><span class="line"><span class="keyword">assign</span> trans_data[<span class="number">1</span>]=fitter_data[<span class="number">1</span>]^fitter_data[<span class="number">0</span>];	<span class="comment">//与上一位数据进行异或</span></span><br></pre></td></tr></table></figure>
+<h3 id="鉴相编码">鉴相编码</h3>
+<p>缓存一拍数据，对比上位数据，若这一位边沿检测数据为1(即有边沿翻转)或上一位鉴相编码为7，则该位鉴相编码置零重新开始计数，否则+1。</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">assign</span> samcode[<span class="number">0</span>]=trans_data[<span class="number">0</span>]?<span class="number">3'd0</span>:(q2+<span class="number">3'd1</span>);<span class="comment">//对比上一个数据的最后一位</span></span><br><span class="line"><span class="keyword">assign</span> samcode[<span class="number">1</span>]=trans_data[<span class="number">1</span>]?<span class="number">3'd0</span>:(samcode[<span class="number">0</span>]+<span class="number">3'd1</span>);<span class="comment">//对比上一位数据</span></span><br></pre></td></tr></table></figure>
+<p>对鉴相编码进行采集位置判定，为采集到数据中段，选择编码3或4为最佳采集位。</p>
+<p>例如该周期内鉴相编码为{4,5,6,7,0,1,2,3}，则位置判定为&lt;0000_0001&gt;，周期内编码为{3,4,5,6,0,1,2,3}时，位置判定为&lt;1000_0001&gt;。</p>
+<h3 id="数据选择">数据选择</h3>
+<p>在理想情况下，每个时钟周期都应有且只有一个需要恢复的数据，但由于存在边沿毛刺现象，在一个时钟周期内可能会存在0个或者2个数据需要恢复，通过周期内鉴相编码3出现的次数，判断周期内需要恢复的数据数量，写入fifo，如下图所示。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602162845910.png"></p>
+<p>数据选择基本流程：</p>
+<ol type="1">
+<li><p>判断当前周期内需要恢复的数据位数。</p>
+<p>当周期内需要恢复两个数据时，由于鉴相编码的方式，需要恢复的数据会分别出现在高位与低位。</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//两个恢复数据</span></span><br><span class="line"><span class="keyword">assign</span> two = ([<span class="number">0</span>]|pos[<span class="number">1</span>]|pos[<span class="number">2</span>]) &amp; (pos[<span class="number">5</span>]|pos[<span class="number">6</span>]|pos[<span class="number">7</span>]);</span><br><span class="line"><span class="comment">//一个恢复数据</span></span><br><span class="line"><span class="keyword">assign</span> one = !two &amp; (pos[<span class="number">0</span>]|pos[<span class="number">1</span>]|pos[<span class="number">2</span>]|pos[<span class="number">3</span>]|pos[<span class="number">4</span>]|pos[<span class="number">5</span>]|pos[<span class="number">6</span>]|pos[<span class="number">7</span>]);</span><br><span class="line"><span class="comment">//零个恢复数据</span></span><br><span class="line"><span class="keyword">assign</span> zero = !one&amp;!two;</span><br></pre></td></tr></table></figure></li>
+<li><p>将对应位置的数据缓存进data[cnt]，并根据需要恢复的数据位数计数cnt+0/1/2。</p></li>
+<li><p>cnt计数到7时置零，并将data[0:7]写入FIFO。</p>
+<ul>
+<li>data位宽为9bit，只将低8位写入FIFO。</li>
+<li>FIFO读出时先读高位，需要注意数据大小端。</li>
+</ul></li>
+</ol>
+<p>其中值得注意的情况有两种：</p>
+<ul>
+<li>当计数到7，而此周期采集位置判决为2，则需要将高位缓存至data[8]，在下个周期时data[8]数据写入data[0]，并将下个周期的采集数据顺延。</li>
+<li>当计数为0，上个周期采集位置判决不为2，且这个周期采集位置判决为0时，该周期内不将data写入fifo。</li>
+</ul>
+<p>具体流程如下图。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/chosedata.drawio.png"></p>
+<h2 id="附">附</h2>
+<p><img src="https://cdn.jsdelivr.net/gh/comicfuji/blogimage@main/img/image-20230602162524650.png"></p>
+<p>整体框图如上图所示，差分信号缓冲后的互补信号进入过采样同步数据恢复模块，并输出恢复数据进行后续处理。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">参考</span><br><span class="line">《Efficient 8X Oversampling Asynchronous Serial Data Recovery Using IDELAY》</span><br><span class="line">《基于过采样的数字CDR的设计及验证》 姚飞.西安电子科技大学</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+           <div class="post-tags">
+              <a href="/tags/%E8%BF%87%E9%87%87%E6%A0%B7%E5%90%8C%E6%AD%A5/" rel="tag"><i class="fa fa-tag"></i> 过采样同步</a>
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/" rel="tag"><i class="fa fa-tag"></i> 数据恢复</a>
+          </div>
+          <script type="text/javascript">
+            var tagsall=document.getElementsByClassName("post-tags")
+            for (var i = tagsall.length - 1; i >= 0; i--){
+                var tags=tagsall[i].getElementsByTagName("a");
+                for (var j = tags.length - 1; j >= 0; j--) {
+                    var golden_ratio = 0.618033988749895;
+                    var s = 0.5;
+                    var v = 0.999;
+                    var h = golden_ratio + Math.random()*0.8 - 0.5;
+                    var h_i = parseInt(h * 6);
+                    var f = h * 6 - h_i;
+                    var p = v * (1 - s);
+                    var q = v * (1 - f * s);
+                    var t = v * (1 - (1 - f) * s);
+                    var r, g, b;
+                    switch (h_i) {
+                        case 0:
+                            r = v;
+                            g = t;
+                            b = p;
+                            break;
+                        case 1:
+                            r = q;
+                            g = v;
+                            b = p;
+                            break;
+                        case 2:
+                            r = p;
+                            g = v;
+                            b = t;
+                            break;
+                        case 3 :
+                            r = p;
+                            g = q;
+                            b = v;
+                            break;
+                        case 4:
+                            r = t;
+                            g = p;
+                            b = v;
+                            break;
+                        case 5:
+                            r = v;
+                            g = p;
+                            b = q;
+                            break;
+                        default:
+                            r = 1;
+                            g = 1;
+                            b = 1;
+                      }
+                    tags[j].style.background = "rgba("+parseInt(r*255)+","+parseInt(g*255)+","+parseInt(b*255)+","+0.5+")";
+                }
+            }                        
+            </script>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/19b3bc983d04/" rel="prev" title="加扰">
+      <i class="fa fa-chevron-left"></i> 加扰
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/0d22d1dbf0ac/" rel="next" title="基于VC709的GT调试">
+      基于VC709的GT调试 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">工作原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">模块实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%AE%E5%88%86%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86"><span class="nav-number">2.1.</span> <span class="nav-text">差分信号处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%80%8D%E8%BF%87%E9%87%87%E6%A0%B7%E5%90%8C%E6%AD%A5"><span class="nav-number">2.2.</span> <span class="nav-text">8倍过采样同步</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%95%B4%E5%9E%8B"><span class="nav-number">2.3.</span> <span class="nav-text">数据整型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%B9%E6%B2%BF%E6%A3%80%E6%B5%8B"><span class="nav-number">2.4.</span> <span class="nav-text">边沿检测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%89%B4%E7%9B%B8%E7%BC%96%E7%A0%81"><span class="nav-number">2.5.</span> <span class="nav-text">鉴相编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E9%80%89%E6%8B%A9"><span class="nav-number">2.6.</span> <span class="nav-text">数据选择</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84"><span class="nav-number">3.</span> <span class="nav-text">附</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="君一"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">君一</p>
+  <div class="site-description" itemprop="description">折得梅花独自看</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/comicfuji" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;comicfuji" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://pawoo.net/@comicfuji" title="Mastodon → https:&#x2F;&#x2F;pawoo.net&#x2F;@comicfuji" rel="noopener" target="_blank"><i class="fab fa-mastodon fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:huangruanji@163.com" title="E-Mail → mailto:huangruanji@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">君一</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div><script color="0,0,0" opacity="0.5" zIndex="-1" count="99" src="https://cdn.jsdelivr.net/npm/canvas-nest.js@1/dist/canvas-nest.js"></script>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+
+</html>

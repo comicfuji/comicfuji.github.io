@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>腹肌私人摄影棚</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				color: #444;
+				background: #fff;
+			}
+			a {
+				color: #08f;
+			}
+			
+		</style>
+	</head>
+
+	<body>
+		<!-- <div id="overlay">
+			<button id="startButton">Play</button>
+		</div> -->
+
+		<script src="./node_modules/three/examples/jsm/libs/ammo.wasm.js"></script>
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./node_modules/three/build/three.module.js",
+					"three/addons/": "./node_modules/three/examples/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+			import { MMDLoader } from 'three/addons/loaders/MMDLoader.js';
+			import { MMDAnimationHelper } from 'three/addons/animation/MMDAnimationHelper.js';
+			import { MMDParser } from 'three/addons/libs/mmdparser.module.js';
+			import { MMDPhysics } from 'three/addons/animation/MMDPhysics.js';
+			//模型材质
+			import { Charibert,Haumeric,Noudenet,Haurchefant } from './normalMap.js';
+			import { Noudenet_shenxueyuan,Haumeric_shenxueyuan,Charibert_shenwenguan } from './normalMap.js';
+			import { Noudenet_zongguan,Haumeric_zongguan,Charibert_zongguan }from './normalMap.js';
+			
+			
+			let camera, scene, renderer, effect;
+			let mesh, helper,ikHelper,physicsHelper;
+			let spotLight, lightHelper;
+
+			let ready = false;
+			const numLights = 40;
+			const lights = [];
+			const api = {
+						'animation': true,
+						'ik': false,
+						'physics': true,
+						
+						'ambient' : 0x111111,
+						'show rigid bodies': false,
+						'Hemisphere sky': 0x3c4367,
+    					'Hemisphere ground': 0x3c4367,
+    					'Directional': 0xc16767,
+					};
+
+			const clock = new THREE.Clock();
+			Ammo().then( function () {
+
+					init();
+					
+					animate();
+
+				} );
+
+			function init() {
+
+
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set(0,5,5);
+				
+				// scene
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x000000 );
+
+				// scene.add( new THREE.PolarGridHelper( 30, 0 ) );
+
+				const listener = new THREE.AudioListener();
+				camera.add( listener );
+				scene.add( camera );
+
+				//光照
+				const ambient = new THREE.AmbientLight( api["ambient"], 2 );
+				scene.add( ambient );
+
+				const hemiLight = new THREE.HemisphereLight( api["Hemisphere sky"], api["Hemisphere ground"] );
+    			hemiLight.position.set( 0, 40, 0 );
+    			scene.add( hemiLight );
+
+				
+				const dirLight = new THREE.DirectionalLight( api["Directional"], 5 );
+				dirLight.position.set( 0, 0, 58);
+				dirLight.castShadow = false;
+				dirLight.shadow.mapSize.copy( new THREE.Vector2 ( 2 ** 10, 2 ** 10 ) );
+				dirLight.shadow.bias = -0.015;
+				scene.add( dirLight );
+
+				const tex_loader = new THREE.TextureLoader().setPath( 'models/tex/' );
+				const tex_filenames = [ 'disturb.jpg', 'longyan.png'];
+				const textures = { none: null };
+				for ( let i = 0; i < tex_filenames.length; i ++ ) {
+
+				const tex_filename = tex_filenames[ i ];
+
+				const texture = tex_loader.load( tex_filename );
+				texture.minFilter = THREE.LinearFilter;
+				texture.magFilter = THREE.LinearFilter;
+				texture.colorSpace = THREE.SRGBColorSpace;
+
+				textures[ tex_filename ] = texture;
+
+				}
+				
+				spotLight = new THREE.SpotLight( 0xec8383, 100 );
+				spotLight.position.set( 3.5, 3,0.2);
+				spotLight.angle = Math.PI / 6;
+				spotLight.intensity = 200;
+				spotLight.penumbra = 1;
+				spotLight.decay = 2;
+				spotLight.distance = 0;
+				spotLight.map = textures[ 'longyan.png' ];
+
+				spotLight.castShadow = true;
+				spotLight.shadow.mapSize.width = 1024;
+				spotLight.shadow.mapSize.height = 1024;
+				spotLight.shadow.camera.near = 1;
+				spotLight.shadow.camera.far = 10;
+				spotLight.shadow.focus = 1;
+				scene.add( spotLight );
+
+				lightHelper = new THREE.SpotLightHelper( spotLight );
+				// scene.add( lightHelper );
+				
+
+					function initRoom() {
+
+				const geometry = new THREE.PlaneGeometry( 200, 200 );
+				const material = new THREE.MeshLambertMaterial( { color: 0xbcbcbc } );
+
+				const mesh = new THREE.Mesh( geometry, material );
+				mesh.position.set( 0, 0, 0 );
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = true;
+				scene.add( mesh );
+						
+						
+						}
+						initRoom()
+
+				//
+				
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMappingExposure = 1;
+				renderer.setAnimationLoop( render );
+				
+				container.appendChild( renderer.domElement );
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 0, 0 );
+				controls.update();
+				controls.minDistance = 1;
+				controls.maxDistance = 100;
+
+
+
+				// model
+
+				function onProgress( xhr ) {
+
+					if ( xhr.lengthComputable ) {
+
+						const percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round( percentComplete, 2 ) + '% downloaded' );
+
+					}
+
+				}
+				
+
+				const modelFiles = [
+					'models/mmd/pmx/Haumeric.pmx',
+					'models/mmd/pmx/Charibert.pmx',
+					'models/mmd/pmx/Noudenet.pmx',
+					'models/mmd/pmx/Charibert_shenwenguan.pmx',
+					'models/mmd/pmx/Haumeric_shenxueyuan.pmx',
+					'models/mmd/pmx/Noudenet_shenxueyuan.pmx',
+					'models/mmd/pmx/Haurchefant.pmx',
+					'models/mmd/pmx/Noudenet_zongguan.pmx',
+					'models/mmd/pmx/Haumeric_zongguan.pmx',
+					'models/mmd/pmx/Charibert_zongguan.pmx',
+				];
+				let Model_Index;
+				let Vmd_Index = Math.round(Math.random()*8);
+				Vmd_Index = 0;
+				// if (Vmd_Index==6){Model_Index = Math.round(Math.random()*5)+4;}
+				// else{Model_Index = Math.round(Math.random()*9);}
+				
+				Model_Index = 4;
+				const modelFile = modelFiles [Model_Index];
+
+				
+				const vmdFiles = [ 
+					'models/mmd/vmds/1.vmd',
+				 ];
+				
+				
+				
+
+				const vmdFile= vmdFiles[Vmd_Index];
+
+				helper = new MMDAnimationHelper();
+				const loader = new MMDLoader();
+				function loadmodel(modelIndexs){
+				loader.loadWithAnimation( modelFile, vmdFile, function ( mmd ) {
+
+						mesh = mmd.mesh;
+						for ( let i = 0; i < mesh.material.length; i ++ ) {
+							mesh.material[ i ].emissive.multiplyScalar( 0.3 );
+							mesh.material[ i ].userData.outlineParameters.thickness = 0.001;
+							mesh.material[ i ].map.colorSpace = THREE.SRGBColorSpace;
+							}						
+							mesh.castShadow = true;
+							//法线贴图
+							switch (modelIndexs) {
+						case 0: Haumeric(mesh);break;
+						case 1: Charibert(mesh);break;
+						case 2: Noudenet(mesh);break;
+						case 3: Charibert_shenwenguan(mesh);break;
+						case 4: Haumeric_shenxueyuan(mesh);break;
+						case 5: Noudenet_shenxueyuan(mesh);break;
+						case 6: Haurchefant(mesh);break;
+						case 7: Noudenet_zongguan(mesh);break;
+						case 8: Haumeric_zongguan(mesh);break;
+						case 9: Charibert_zongguan(mesh);break;
+						default:Haumeric(mesh);break;
+						}
+							
+						helper.add( mesh, {
+							animation: mmd.animation,
+							physics: true
+						} );
+						mesh.scale.copy( new THREE.Vector3( 1, 1, 1 ).multiplyScalar( 0.0739 ) );
+						ikHelper = helper.objects.get( mesh ).ikSolver.createHelper();
+						ikHelper.visible = false;
+						scene.add( ikHelper );
+
+						physicsHelper = helper.objects.get( mesh ).physics.createHelper();
+						physicsHelper.visible = false;
+						scene.add( physicsHelper );
+						scene.add( mesh );
+						ready = true;
+
+					
+						}, onProgress, null );}
+				
+						loadmodel(Model_Index);
+				//
+						
+
+				window.addEventListener( 'resize', onWindowResize );
+				function initGui() {
+					const gui = new GUI();
+
+					const folder = gui.addFolder( 'Light' );
+					const folder_2 = gui.addFolder( 'spotLight' );
+					const folder_3 = gui.addFolder( 'Others' );
+					const controls = {};
+					const keys = [];
+					const params = {
+					map: textures[ 'disturb.jpg' ],
+					color: spotLight.color.getHex(),
+					intensity: spotLight.intensity,
+					distance: spotLight.distance,
+					angle: spotLight.angle,
+					penumbra: spotLight.penumbra,
+					decay: spotLight.decay,
+					focus: spotLight.shadow.focus,
+					shadows: true
+				};
+					
+				folder.addColor( api, 'Directional' ).onChange( setColor(dirLight.color));
+				folder.addColor( api, 'Hemisphere sky' ).onChange( setColor(hemiLight.color));
+				folder.addColor( api, 'Hemisphere ground' ).onChange( setColor(hemiLight.groundColor));
+				folder.add(dirLight.position, 'x', -100,100,0.01);
+				folder.add(dirLight.position, 'y', -100,100,0.01);
+				folder.add(dirLight.position, 'z', -100,100,0.01);
+				
+				function setColor( color ) {
+            			return ( value  ) => {color.setHex( value );}
+       				 }
+						folder_2.add(spotLight.position, 'x', -100,100,0.01);
+				folder_2.add(spotLight.position, 'y', -100,100,0.01);
+				folder_2.add(spotLight.position, 'z', -100,100,0.01);
+				folder_2.addColor( params, 'color' ).onChange( function ( val ) {spotLight.color.setHex( val );} );
+				folder_2.add( params, 'intensity', 0, 500 ).onChange( function ( val ) {spotLight.intensity = val;} );
+				folder_2.add( params, 'distance', 0, 200 ).onChange( function ( val ) {spotLight.distance = val;} );
+				folder_2.add( params, 'angle', 0, Math.PI / 3 ).onChange( function ( val ) {spotLight.angle = val;} );
+				folder_2.add( params, 'penumbra', 0, 1 ).onChange( function ( val ) {spotLight.penumbra = val;} );
+				folder_2.add( params, 'decay', 1, 2 ).onChange( function ( val ) {spotLight.decay = val;} );
+				folder_2.add( params, 'focus', 0, 1 ).onChange( function ( val ) {spotLight.shadow.focus = val;} );
+				folder_2.add( params, 'shadows' ).onChange( function ( val ) {
+					renderer.shadowMap.enabled = val;
+					scene.traverse( function ( child ) {
+					if ( child.material ) {
+						child.material.needsUpdate = true;}
+				    } );
+				} );
+				folder_2.add( params, 'map', textures ).onChange( function ( val ) {
+				spotLight.map = val;
+				} );
+	
+				folder_3.add( api, 'animation' ).onChange( function () {
+					helper.enable( 'animation', api[ 'animation' ] );
+					audio.pause();
+					} );
+				folder_3.add( api, 'physics' ).onChange( function () {
+					helper.enable( 'physics', api[ 'physics' ] );
+					} );
+				folder_3.add( api, 'ik' ).onChange( function () {
+					ikHelper.visible = api[ 'ik' ];
+					} );
+					
+					folder.close()
+					folder_2.close()
+					folder_3.close()
+
+				}
+				initGui();
+
+			}
+				
+			
+				
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				render();
+
+			}
+
+			function render() {
+
+				if ( ready ) {
+					const time = Date.now() * 0.0005;
+					helper.update( clock.getDelta() );
+					
+					
+
+					lightHelper.update();
+
+
+				}
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>

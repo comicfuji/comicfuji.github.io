@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>MODEL_VIEW</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				background-color: #fff;
+				color: #444;
+			}
+			a {
+				color: #08f;
+			}
+		</style>
+	</head>
+
+	<body>
+		<script src="./node_modules/three/examples/jsm/libs/ammo.wasm.js"></script>
+		<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+		
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./node_modules/three/build/three.module.js",
+					"three/addons/": "./node_modules/three/examples/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+			import { MMDLoader } from 'three/addons/loaders/MMDLoader.js';
+			import { MMDAnimationHelper } from 'three/addons/animation/MMDAnimationHelper.js';
+			import { MMDParser } from 'three/addons/libs/mmdparser.module.js';
+			import { MMDPhysics } from 'three/addons/animation/MMDPhysics.js';
+			import Stats from 'three/addons/libs/stats.module.js';
+			//模型材质
+			import { Charibert,Haumeric,Noudenet,Haurchefant } from './normalMap.js';
+			import { Noudenet_shenxueyuan,Haumeric_shenxueyuan,Charibert_shenwenguan } from './normalMap.js';
+			import { Noudenet_zongguan,Haumeric_zongguan,Charibert_zongguan }from './normalMap.js';
+
+
+			let camera, scene, renderer, effect,controls;
+			let mesh, helper,physicsHelper;
+			let light1, light2, light3, light4,stats;
+			const clock = new THREE.Clock();
+			const numLights = 40;
+			const lights = [];
+			const vpds = [];
+			const models = [];
+			const vmds =[];
+			const api = {
+						'physics': true,
+						'ambient' : 0xffffff,
+						'show rigid bodies': false,
+						'Hemisphere sky': 0xffffff,
+    					'Hemisphere ground': 0xffffff,
+    					'Directional': 0xffffff,
+					};
+
+			Ammo().then( function ( AmmoLib ) {
+				Ammo = AmmoLib;
+				init();
+				animate();
+			} );
+			// 初始化
+			function init() {
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
+				//添加场景
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xffffff);
+				
+				//环境光
+				const ambient = new THREE.AmbientLight( api["ambient"], 1 );
+				scene.add( ambient );
+
+				//光照
+				const hemiLight = new THREE.HemisphereLight( api["Hemisphere sky"], api["Hemisphere ground"] );
+    			hemiLight.position.set( 0, 40, 0 );
+    			scene.add( hemiLight );
+				
+				const dirLight = new THREE.DirectionalLight( api["Directional"], 0.7 );
+				dirLight.position.set( 10, 10, 10 );
+				dirLight.castShadow = true;
+				dirLight.shadow.camera.top = 25;
+				dirLight.shadow.camera.bottom = -20;
+				dirLight.shadow.camera.left = -20;
+				dirLight.shadow.camera.right = 20;
+				dirLight.shadow.camera.near = 0.1;
+				dirLight.shadow.camera.far = 80;
+				dirLight.shadow.mapSize.width = 1024;
+				dirLight.shadow.mapSize.height = 1024;
+				dirLight.shadow.bias = -0.015;
+				scene.add( dirLight );
+						
+				//相机
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.z = 30;
+
+				//渲染
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+				effect = new OutlineEffect( renderer );
+
+				// model
+				function onProgress( xhr ) {
+					if ( xhr.lengthComputable ) {
+						const percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round( percentComplete, 2 ) + '% downloaded' );
+					}
+				}
+
+				const modelFiles = [
+					'models/mmd/pmx/Haumeric.pmx',
+					'models/mmd/pmx/Charibert.pmx',
+					'models/mmd/pmx/Noudenet.pmx',
+					'models/mmd/pmx/Charibert_shenwenguan.pmx',
+					'models/mmd/pmx/Haumeric_shenxueyuan.pmx',
+					'models/mmd/pmx/Noudenet_shenxueyuan.pmx',
+					'models/mmd/pmx/Haurchefant.pmx',
+					'models/mmd/pmx/Noudenet_zongguan.pmx',
+					'models/mmd/pmx/Haumeric_zongguan.pmx',
+					'models/mmd/pmx/Charibert_zongguan.pmx',
+				];
+
+				const vpdFiles = [
+					'models/mmd/vpds/01.vpd',
+					'models/mmd/vpds/02.vpd',
+					'models/mmd/vpds/03.vpd',
+					'models/mmd/vpds/04.vpd',
+				];
+ 
+				const vmdFiles = [
+					'models/mmd/vmds/Masked_bitcH.vmds',  
+					'models/mmd/vmds/SandM.vmd',
+				];
+			
+				helper = new MMDAnimationHelper();
+				const loader = new MMDLoader();
+				const loader_motion = new MMDLoader();
+				let modelIndex = 0;
+				function loadmodel(modelIndexs){	
+					loader.load( modelFiles[modelIndexs], function ( object ) {
+					scene.remove( mesh );	
+					mesh = object;
+					for ( let i = 0; i < mesh.material.length; i ++ ) {
+						mesh.material[ i ].emissive.multiplyScalar( 0.3 );
+						mesh.material[ i ].userData.outlineParameters.thickness = 0.001;
+						mesh.material[ i ].map.colorSpace = THREE.SRGBColorSpace;
+					
+						}
+					//人物法线
+					switch (modelIndexs) {
+						case 0: Haumeric(mesh);break;
+						case 1: Charibert(mesh);break;
+						case 2: Noudenet(mesh);break;
+						case 3: Charibert_shenwenguan(mesh);break;
+						case 4: Haumeric_shenxueyuan(mesh);break;
+						case 5: Noudenet_shenxueyuan(mesh);break;
+						case 6: Haurchefant(mesh);break;
+						case 7: Noudenet_zongguan(mesh);break;
+						case 8: Haumeric_zongguan(mesh);break;
+						case 9: Charibert_zongguan(mesh);break;
+						default:Haumeric(mesh);break;
+						}
+
+						mesh.castShadow = true; 
+						mesh.receiveShadow = true;
+						mesh.scale.copy( new THREE.Vector3( 1, 1, 1 ).multiplyScalar( 1 ) );
+					mesh.position.y = - 10;
+					// physics = new MMDPhysics( mesh );
+					scene.add( mesh );
+					helper.add( mesh, {physics: true} );
+					physicsHelper = helper.objects.get( mesh ).physics.createHelper();
+					physicsHelper.visible = false;
+					scene.add( physicsHelper );
+					
+					loadVpd();
+				}, onProgress, null );
+			}
+					let vpdIndex = 0;
+					function loadVpd() {
+						const vpdFile = vpdFiles[ vpdIndex ];
+						loader.loadVPD( vpdFile, false, function ( vpd ) {
+							vpds.push( vpd );
+							vpdIndex ++;
+							if ( vpdIndex < vpdFiles.length ) {
+								loadVpd();
+							} else {
+								initGui();
+							}
+						}, onProgress, null );
+					}
+
+					
+				loadmodel(modelIndex);
+	
+
+				//
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.minDistance = 1;
+				controls.maxDistance = 100;
+				window.addEventListener( 'resize', onWindowResize );
+
+				function initGui() {
+					const gui = new GUI();
+					const dictionary = mesh.morphTargetDictionary;
+					const controls = {};
+					const keys = [];
+					
+					// const loadfiles = gui.addFolder( 'Loader' );
+					function getBaseName( s ) {
+						return s.slice( s.lastIndexOf( '/' ) + 1 );
+					}
+
+					function initControls() {
+						for ( const key in dictionary ) {
+							controls[ key ] = 0.0;
+						}
+						controls.pose = - 1;
+						for ( let i = 0; i < vpdFiles.length; i ++ ) {
+							controls[ getBaseName( vpdFiles[ i ] ) ] = false;
+						}
+					}
+					function initphysics(){
+						gui.add( api, 'physics' ).onChange( function () {
+						helper.enable( 'physics', api[ 'physics' ] );
+					} );
+					}
+					function initrigidbodies(){
+						gui.add( api, 'show rigid bodies' ).onChange( function () {
+						if ( physicsHelper !== undefined ) physicsHelper.visible = api[ 'show rigid bodies' ];
+					} );
+					}
+					function initlight(){
+						const folder = gui.addFolder( 'Light' );
+						folder.addColor( api, 'Directional' ).onChange( setColor(dirLight.color));
+						folder.addColor( api, 'Hemisphere sky' ).onChange( setColor(hemiLight.color));
+						folder.addColor( api, 'Hemisphere ground' ).onChange( setColor(hemiLight.groundColor));
+						folder.add(dirLight.position, 'x', -100,100,0.01);
+						folder.add(dirLight.position, 'y', -100,100,0.01);
+						folder.add(dirLight.position, 'z', -100,100,0.01);
+						// folder.addColor( api, 'ambient' ).onChange(setColor(ambient.groundColor));
+						function setColor( color ) {
+            			return ( value  ) => {color.setHex( value );}
+       				 }
+					}
+					
+					function initKeys() {
+						for ( const key in dictionary ) {
+							keys.push( key );
+						}
+					}
+					function initModels() {
+						const modfiles = { default: - 1 };
+						for ( let i = 0; i < modelFiles.length; i ++ ) {
+							modfiles[ getBaseName( modelFiles[ i ] ) ] = i;
+						}
+						gui.add( controls, 'models', modfiles ).onChange( onChangeModel );
+					}
+
+					function initPoses() {
+						const files = { default: - 1 };
+						for ( let i = 0; i < vpdFiles.length; i ++ ) {
+							files[ getBaseName( vpdFiles[ i ] ) ] = i;
+						}
+						gui.add( controls, 'pose', files ).onChange( onChangePose );
+					}
+
+					function initMotions() {
+						const motionfiles = { default: - 1 };
+						for ( let i = 0; i < vmdFiles.length; i ++ ) {
+							motionfiles[ getBaseName( vmdFiles[ i ] ) ] = i;
+						}
+						gui.add( controls, 'motion', motionfiles ).onChange( onChangeMotion );
+					}
+					
+
+					function onChangeModel() {
+						const model_index = parseInt( controls.models );
+						if ( model_index === - 1 ) {
+							loadmodel(0);
+							
+						} else {
+							loadmodel(model_index);
+						}
+					}
+
+					function onChangePose() {
+						const index = parseInt( controls.pose );
+						if ( index === - 1 ) {
+							mesh.pose();
+						} else {
+							helper.pose( mesh, vpds[ index ] );
+
+						}
+					}
+					function onChangeMotion() {
+						const motionindex = parseInt( controls.motion );
+						if ( motionindex === - 1 ) {
+							
+						} else {
+							
+							
+						}
+					}
+
+					initControls();
+					initKeys();
+					initModels();
+					initPoses();
+					// initMotions();
+					initphysics();
+					initrigidbodies();
+					initlight();
+					onChangeModel();
+					onChangePose();
+
+					loadfiles.close();
+				}
+				
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				effect.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			//
+
+			function animate() {
+				requestAnimationFrame( animate );
+				render();
+			}
+			function render() {
+				const time = Date.now() * 0.0005;
+				const delta = clock.getDelta();
+				
+
+				effect.render( scene, camera );
+			}
+			
+			
+		</script>
+
+	</body>
+</html>

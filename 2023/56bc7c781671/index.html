@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-center-atom.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="记录一些配置hexo过程中遇到的问题和解决方法。 自定义css 在blog\source\_data下创建styles.styl,并在next主题设置中去掉style: source&#x2F;_data&#x2F;styles.styl的注释，在styles.styl中写的样式可覆盖next自带样式。 比如需要平板字体调整，则加入以下代码： 12345@media screen and (min-width:">
+<meta property="og:type" content="article">
+<meta property="og:title" content="hexo&amp;next主题配置">
+<meta property="og:url" content="http://example.com/2023/56bc7c781671/index.html">
+<meta property="og:site_name" content="MIDLAKE">
+<meta property="og:description" content="记录一些配置hexo过程中遇到的问题和解决方法。 自定义css 在blog\source\_data下创建styles.styl,并在next主题设置中去掉style: source&#x2F;_data&#x2F;styles.styl的注释，在styles.styl中写的样式可覆盖next自带样式。 比如需要平板字体调整，则加入以下代码： 12345@media screen and (min-width:">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-03-25T08:58:22.000Z">
+<meta property="article:modified_time" content="2023-04-17T08:31:49.000Z">
+<meta property="article:author" content="君一">
+<meta property="article:tag" content="hexo设置">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2023/56bc7c781671/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>hexo&next主题配置 | MIDLAKE</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">MIDLAKE</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/56bc7c781671/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="君一">
+      <meta itemprop="description" content="折得梅花独自看">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MIDLAKE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          hexo&next主题配置
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-03-25 16:58:22" itemprop="dateCreated datePublished" datetime="2023-03-25T16:58:22+08:00">2023-03-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>记录一些配置hexo过程中遇到的问题和解决方法。</p>
+<h2 id="自定义css">自定义css</h2>
+<p>在<code>blog\source\_data</code>下创建styles.styl,并在next主题设置中去掉<code>style: source/_data/styles.styl</code>的注释，在styles.styl中写的样式可覆盖next自带样式。
+比如需要平板字体调整，则加入以下代码： <figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">@media</span> screen <span class="keyword">and</span> (<span class="attribute">min-width</span>: <span class="number">737px</span>) <span class="keyword">and</span> (<span class="attribute">max-width</span>: <span class="number">1200px</span>)&#123;</span><br><span class="line">  <span class="selector-class">.post-body</span> &#123;</span><br><span class="line">    <span class="attribute">font-size</span>: <span class="number">1.4em</span>;</span><br><span class="line">  &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="博文中设置悬浮按钮">博文中设置悬浮按钮</h2>
+<p>想在博文里加入控制假名显示的悬浮开关，直接设置css无法达成悬浮效果，排除后发现是动画主题特效设置了transform属性所致，关闭next配置文件中motion下的post-body:slideDownIn，遂成。</p>
+<span id="more"></span>
+<h3 id="悬浮按钮设置">悬浮按钮设置</h3>
+<p>直接在md文件里加入代码即可。段前不能有空格。 <figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 加入按钮 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">button</span> <span class="attr">type</span>=<span class="string">&quot;button&quot;</span> <span class="attr">id</span>=<span class="string">&quot;jiaming&quot;</span> <span class="attr">className</span> =<span class="string">&quot;hide_hira&quot;</span>&gt;</span>隐藏<span class="tag">&lt;<span class="name">br</span>&gt;</span>假名<span class="tag">&lt;/<span class="name">button</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- 开关&lt;rt&gt;标签 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">var</span> btn = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;jiaming&quot;</span>)</span></span><br><span class="line"><span class="language-javascript">    btn.<span class="title function_">addEventListener</span>(<span class="string">&#x27;click&#x27;</span>, <span class="keyword">function</span> (<span class="params">event</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">		<span class="keyword">let</span> table1 = <span class="variable language_">document</span>.<span class="title function_">querySelectorAll</span>(<span class="string">&quot;rt&quot;</span>);</span></span><br><span class="line"><span class="language-javascript">		<span class="keyword">let</span> txt =  <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;jiaming&quot;</span>);</span></span><br><span class="line"><span class="language-javascript">		<span class="keyword">let</span> class_name = txt.<span class="title function_">getAttribute</span>(<span class="string">&quot;className&quot;</span>);</span></span><br><span class="line"><span class="language-javascript">		<span class="keyword">if</span>(class_name==<span class="string">&quot;hide_hira&quot;</span>)&#123;<span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; table1.<span class="property">length</span>; i++) &#123;</span></span><br><span class="line"><span class="language-javascript">			table1[i].<span class="property">style</span>.<span class="property">visibility</span>  = <span class="string">&#x27;hidden&#x27;</span>&#125; </span></span><br><span class="line"><span class="language-javascript">			txt.<span class="title function_">setAttribute</span>(<span class="string">&#x27;className&#x27;</span>,<span class="string">&#x27;show_hira&#x27;</span>);</span></span><br><span class="line"><span class="language-javascript">			txt.<span class="property">innerHTML</span>=<span class="string">&quot;显示&lt;br&gt;假名&quot;</span>;</span></span><br><span class="line"><span class="language-javascript">			txt.<span class="property">style</span>.<span class="property">background</span>  = <span class="string">&quot;#000000&quot;</span>;&#125;</span></span><br><span class="line"><span class="language-javascript">		<span class="keyword">else</span> <span class="keyword">if</span>(class_name==<span class="string">&quot;show_hira&quot;</span>)&#123;<span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; table1.<span class="property">length</span>; i++) &#123;</span></span><br><span class="line"><span class="language-javascript">		table1[i].<span class="property">style</span>.<span class="property">visibility</span>  = <span class="string">&#x27;visible&#x27;</span>&#125; </span></span><br><span class="line"><span class="language-javascript">			txt.<span class="title function_">setAttribute</span>(<span class="string">&#x27;className&#x27;</span>,<span class="string">&#x27;hide_hira&#x27;</span>);</span></span><br><span class="line"><span class="language-javascript">			txt.<span class="property">innerHTML</span>=<span class="string">&quot;隐藏&lt;br&gt;假名&quot;</span>;</span></span><br><span class="line"><span class="language-javascript">			txt.<span class="property">style</span>.<span class="property">background</span>  = <span class="string">&quot;#d95673&quot;</span>;&#125;	</span></span><br><span class="line"><span class="language-javascript">        &#125;)</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- 按钮样式 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">style</span> <span class="attr">type</span>=<span class="string">&quot;text/css&quot;</span>&gt;</span><span class="language-css"></span></span><br><span class="line"><span class="language-css">    <span class="selector-tag">button</span>&#123;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">position</span>: fixed;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">right</span>: <span class="number">20px</span>;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">top</span> : <span class="number">20px</span>;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">background</span>:<span class="number">#d95673</span>;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">color</span>:<span class="number">#ffffff</span>;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">z-index</span>:<span class="number">9999</span>;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">opacity</span>:<span class="number">0.5</span>;</span></span><br><span class="line"><span class="language-css">    &#125;</span></span><br><span class="line"><span class="language-css">    rt&#123;</span></span><br><span class="line"><span class="language-css">        <span class="attribute">color</span>:<span class="number">#b22a2a</span>;</span></span><br><span class="line"><span class="language-css">    &#125;</span></span><br><span class="line"><span class="language-css"></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+           <div class="post-tags">
+              <a href="/tags/hexo%E8%AE%BE%E7%BD%AE/" rel="tag"><i class="fa fa-tag"></i> hexo设置</a>
+          </div>
+          <script type="text/javascript">
+            var tagsall=document.getElementsByClassName("post-tags")
+            for (var i = tagsall.length - 1; i >= 0; i--){
+                var tags=tagsall[i].getElementsByTagName("a");
+                for (var j = tags.length - 1; j >= 0; j--) {
+                    var golden_ratio = 0.618033988749895;
+                    var s = 0.5;
+                    var v = 0.999;
+                    var h = golden_ratio + Math.random()*0.8 - 0.5;
+                    var h_i = parseInt(h * 6);
+                    var f = h * 6 - h_i;
+                    var p = v * (1 - s);
+                    var q = v * (1 - f * s);
+                    var t = v * (1 - (1 - f) * s);
+                    var r, g, b;
+                    switch (h_i) {
+                        case 0:
+                            r = v;
+                            g = t;
+                            b = p;
+                            break;
+                        case 1:
+                            r = q;
+                            g = v;
+                            b = p;
+                            break;
+                        case 2:
+                            r = p;
+                            g = v;
+                            b = t;
+                            break;
+                        case 3 :
+                            r = p;
+                            g = q;
+                            b = v;
+                            break;
+                        case 4:
+                            r = t;
+                            g = p;
+                            b = v;
+                            break;
+                        case 5:
+                            r = v;
+                            g = p;
+                            b = q;
+                            break;
+                        default:
+                            r = 1;
+                            g = 1;
+                            b = 1;
+                      }
+                    tags[j].style.background = "rgba("+parseInt(r*255)+","+parseInt(g*255)+","+parseInt(b*255)+","+0.5+")";
+                }
+            }                        
+            </script>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/3f7df579e750/" rel="prev" title="RS码">
+      <i class="fa fa-chevron-left"></i> RS码
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/5d835212b261/" rel="next" title="交织器">
+      交织器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89css"><span class="nav-number">1.</span> <span class="nav-text">自定义css</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%9A%E6%96%87%E4%B8%AD%E8%AE%BE%E7%BD%AE%E6%82%AC%E6%B5%AE%E6%8C%89%E9%92%AE"><span class="nav-number">2.</span> <span class="nav-text">博文中设置悬浮按钮</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%82%AC%E6%B5%AE%E6%8C%89%E9%92%AE%E8%AE%BE%E7%BD%AE"><span class="nav-number">2.1.</span> <span class="nav-text">悬浮按钮设置</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="君一"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">君一</p>
+  <div class="site-description" itemprop="description">折得梅花独自看</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/comicfuji" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;comicfuji" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://pawoo.net/@comicfuji" title="Mastodon → https:&#x2F;&#x2F;pawoo.net&#x2F;@comicfuji" rel="noopener" target="_blank"><i class="fab fa-mastodon fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:huangruanji@163.com" title="E-Mail → mailto:huangruanji@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">君一</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div><script color="0,0,0" opacity="0.5" zIndex="-1" count="99" src="https://cdn.jsdelivr.net/npm/canvas-nest.js@1/dist/canvas-nest.js"></script>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>腹肌私人舞厅</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				color: #444;
+				background: #fff;
+			}
+			a {
+				color: #08f;
+			}
+			
+		</style>
+	</head>
+
+	<body>
+		<!-- <div id="overlay">
+			<button id="startButton">Play</button>
+		</div> -->
+
+		<script src="./node_modules/three/examples/jsm/libs/ammo.wasm.js"></script>
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./node_modules/three/build/three.module.js",
+					"three/addons/": "./node_modules/three/examples/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+			import { MMDLoader } from 'three/addons/loaders/MMDLoader.js';
+			import { MMDAnimationHelper } from 'three/addons/animation/MMDAnimationHelper.js';
+			import { MMDParser } from 'three/addons/libs/mmdparser.module.js';
+			import { MMDPhysics } from 'three/addons/animation/MMDPhysics.js';
+			//模型材质
+			import { Charibert,Haumeric,Noudenet,Haurchefant } from './normalMap.js';
+			import { Noudenet_shenxueyuan,Haumeric_shenxueyuan,Charibert_shenwenguan } from './normalMap.js';
+			import { Noudenet_zongguan,Haumeric_zongguan,Charibert_zongguan }from './normalMap.js';
+			
+			
+			let camera, scene, renderer, effect;
+			let mesh, helper,ikHelper,physicsHelper;
+			let spotLight, lightHelper;
+
+			let ready = false;
+			const numLights = 40;
+			const lights = [];
+			const api = {
+						'animation': true,
+						'ik': false,
+						'physics': true,
+						
+						'ambient' : 0x111111,
+						'show rigid bodies': false,
+						'Hemisphere sky': 0x3c4367,
+    					'Hemisphere ground': 0x3c4367,
+    					'Directional': 0x105a93,
+					};
+
+			const clock = new THREE.Clock();
+			Ammo().then( function () {
+
+					init();
+					
+					animate();
+
+				} );
+			// const startButton = document.getElementById( 'startButton' );
+			// startButton.addEventListener( 'click', function () {
+
+			// 	Ammo().then( function () {
+
+			// 		init();
+					
+			// 		animate();
+
+			// 	} );
+
+			// } );
+
+			function init() {
+				
+
+				// const overlay = document.getElementById( 'overlay' );
+				// overlay.remove();
+
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set(0,11,40);
+				
+				// scene
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x000000 );
+
+				// scene.add( new THREE.PolarGridHelper( 30, 0 ) );
+
+				const listener = new THREE.AudioListener();
+				camera.add( listener );
+				scene.add( camera );
+
+				//光照
+				const ambient = new THREE.AmbientLight( api["ambient"], 2 );
+				scene.add( ambient );
+
+				const hemiLight = new THREE.HemisphereLight( api["Hemisphere sky"], api["Hemisphere ground"] );
+    			hemiLight.position.set( 0, 40, 0 );
+    			scene.add( hemiLight );
+
+				
+				const dirLight = new THREE.DirectionalLight( api["Directional"], 5 );
+				dirLight.position.set( 35, 0, 0);
+				dirLight.castShadow = false;
+				dirLight.shadow.mapSize.copy( new THREE.Vector2 ( 2 ** 10, 2 ** 10 ) );
+				dirLight.shadow.bias = -0.015;
+				scene.add( dirLight );
+				
+				spotLight = new THREE.SpotLight( 0x5d71c0, 100 );
+				spotLight.position.set(15, 40, 15 );
+				spotLight.angle = Math.PI / 6;
+				spotLight.penumbra = 1;
+				spotLight.decay = 1.3;
+				spotLight.intensity = 400;
+				spotLight.distance = 60;
+
+				spotLight.castShadow = true;
+				scene.add( spotLight );
+
+				lightHelper = new THREE.SpotLightHelper( spotLight );
+				// scene.add( lightHelper );
+				
+
+				function initLights() {
+
+					var distance = 7;
+
+					var c = new THREE.Vector3();
+					var geometry = new THREE.SphereGeometry( 0,0,0 );
+
+					for (var i=0; i<numLights;i++) {
+
+						var light = new THREE.PointLight( 0xffffff, 30, distance );
+						c.set( Math.random(), Math.random(), Math.random() ).normalize();
+						light.color.setRGB( c.x, c.y, c.z );
+						scene.add( light );
+						lights.push( light );
+
+						var material = new THREE.MeshLambertMaterial( { color: light.color } );
+						var emitter = new THREE.Mesh( geometry, material );
+						light.add( emitter );						
+				}
+
+}
+
+					function initRoom() {
+
+						var size = 50;
+						var geoFloor = new THREE.PlaneGeometry( 100,100 );
+						var matStdFloor =new THREE.MeshLambertMaterial( { color: 0xbcbcbc } );
+
+						const mshStdFloor = new THREE.Mesh( geoFloor, matStdFloor );
+						const mshStdBack = new THREE.Mesh( geoFloor, matStdFloor );
+						const mshStdBack_shadow = new THREE.Mesh( new THREE.PlaneGeometry( 100, 100, 1, 1 ), new THREE.ShadowMaterial( { opacity: 0.25 } ) );
+						const mshStdFloor_shadow = new THREE.Mesh( new THREE.PlaneGeometry( 100, 100, 1, 1 ), new THREE.ShadowMaterial( { opacity: 0.25 } ) );
+						
+						mshStdBack.position.z = -12;
+						mshStdFloor.rotation.x = -Math.PI/2;
+
+						mshStdBack_shadow.receiveShadow = true;
+						mshStdBack_shadow.position.z = -12;
+						mshStdFloor_shadow.position.y = 0.1;
+						mshStdFloor_shadow.receiveShadow = true;
+						mshStdFloor_shadow.rotation.x = -Math.PI/2;
+
+
+						scene.add( mshStdFloor );
+						scene.add( mshStdBack );
+						scene.add( mshStdFloor_shadow );
+						scene.add( mshStdBack_shadow );
+
+						
+						
+						}
+						initRoom()
+						initLights()
+
+				//
+				
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMappingExposure = 1;
+				renderer.setAnimationLoop( render );
+				
+				container.appendChild( renderer.domElement );
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 11, 0 );
+				controls.update();
+				controls.minDistance = 1;
+				controls.maxDistance = 100;
+
+
+
+				// model
+
+				function onProgress( xhr ) {
+
+					if ( xhr.lengthComputable ) {
+
+						const percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round( percentComplete, 2 ) + '% downloaded' );
+
+					}
+
+				}
+
+
+				const modelFiles = [
+					'models/mmd/pmx/Haumeric.pmx',
+					'models/mmd/pmx/Charibert.pmx',
+					'models/mmd/pmx/Noudenet.pmx',
+					'models/mmd/pmx/Charibert_shenwenguan.pmx',
+					'models/mmd/pmx/Haumeric_shenxueyuan.pmx',
+					'models/mmd/pmx/Noudenet_shenxueyuan.pmx',
+					'models/mmd/pmx/Haurchefant.pmx',
+					'models/mmd/pmx/Noudenet_zongguan.pmx',
+					'models/mmd/pmx/Haumeric_zongguan.pmx',
+					'models/mmd/pmx/Charibert_zongguan.pmx',
+				];
+				let Model_Index;
+				let Vmd_Index = Math.round(Math.random()*8);
+				// Vmd_Index = 8;
+				if (Vmd_Index==6){Model_Index = Math.round(Math.random()*5)+4;}
+				else{Model_Index = Math.round(Math.random()*9);}
+				
+				// Model_Index = 6;
+				const modelFile = modelFiles [Model_Index];
+
+				
+				const vmdFiles = [ 
+					'models/mmd/vmds/Masked_bitcH.vmd',
+					'models/mmd/vmds/Te_Amo.vmd',
+					'models/mmd/vmds/SandM.vmd',
+					'models/mmd/vmds/Odo.vmd',
+					'models/mmd/vmds/Addiction.vmd',
+					'models/mmd/vmds/Tik_tok.vmd',
+					'models/mmd/vmds/Follow_The_Leader.vmd',
+					'models/mmd/vmds/Yixinangui.vmd',
+					'models/mmd/vmds/CH4NGE.vmd',
+				 ];
+				const audioFiles = [
+					'models/mmd/audios/Masked_bitcH.mp3',
+					'models/mmd/audios/Te_Amo.mp3',
+					'models/mmd/audios/SandM.mp3',
+					'models/mmd/audios/Odo.mp3',
+					'models/mmd/audios/Addiction.mp3',
+					'models/mmd/audios/Tik_tok.mp3',
+					'models/mmd/audios/Follow_The_Leader.mp3',
+					'models/mmd/audios/Yixinangui.mp3',
+					'models/mmd/audios/CH4NGE.mp3',
+				];
+				
+				const AutherInfos= [
+					{Music: 'Giga.Masked_bitcH/しゅーず',Choreography:'AMU',Motion: 'ごしかん'},
+					{Music: 'Rihanna.Te_Amo',Choreography:'Oleg Kasynets',Motion: 'HIKO'},
+					{Music: 'Rihanna.S&M',Choreography:'Stas Cranberry',Motion: 'あやはち'},
+					{Music: 'Ado.踊',Choreography:'くるとん/あろ',Motion: 'こっちゃ'},
+					{Music: 'Giga&Reol&EVO+.[A]ddiction',Choreography:'足太ぺんた',Motion: 'hino'},
+					{Music: 'Kesha.TiK_ToK',Choreography:'Kesha',Motion: 'あさとし'},
+					{Music: 'Wisin&Yandel.Follow_The_Leader',Choreography:'NatsumiSan',Motion: 'NatsumiSan'},
+					{Music: '梅とら.疑心暗鬼/Sou',Choreography:'ぶっきー',Motion: '曇＠のあき'},
+					{Music: 'Giga.CH4NGE/しゅーず',Choreography:'海夏青',Motion: 'mobiusP'},			
+				];
+
+
+				const vmdFile= vmdFiles[Vmd_Index];
+				const AutherInfo = AutherInfos[Vmd_Index];
+				const audioFile= audioFiles[Vmd_Index];
+
+				const audioParams = { delayTime: 0 };
+				const cameraFiles= ['models/mmd/vmds/wavefile_camera.vmd'];
+				
+
+				helper = new MMDAnimationHelper();
+				const loader = new MMDLoader();
+				function loadmodel(modelIndexs){
+				loader.loadWithAnimation( modelFile, vmdFile, function ( mmd ) {
+
+						mesh = mmd.mesh;
+						for ( let i = 0; i < mesh.material.length; i ++ ) {
+							mesh.material[ i ].emissive.multiplyScalar( 0.3 );
+							mesh.material[ i ].userData.outlineParameters.thickness = 0.001;
+							mesh.material[ i ].map.colorSpace = THREE.SRGBColorSpace;
+							}						
+							mesh.castShadow = true;
+							//法线贴图
+							switch (modelIndexs) {
+						case 0: Haumeric(mesh);break;
+						case 1: Charibert(mesh);break;
+						case 2: Noudenet(mesh);break;
+						case 3: Charibert_shenwenguan(mesh);break;
+						case 4: Haumeric_shenxueyuan(mesh);break;
+						case 5: Noudenet_shenxueyuan(mesh);break;
+						case 6: Haurchefant(mesh);break;
+						case 7: Noudenet_zongguan(mesh);break;
+						case 8: Haumeric_zongguan(mesh);break;
+						case 9: Charibert_zongguan(mesh);break;
+						default:Haumeric(mesh);break;
+						}
+							
+						helper.add( mesh, {
+							animation: mmd.animation,
+							physics: true
+						} );
+						ikHelper = helper.objects.get( mesh ).ikSolver.createHelper();
+						ikHelper.visible = false;
+						scene.add( ikHelper );
+
+						physicsHelper = helper.objects.get( mesh ).physics.createHelper();
+						physicsHelper.visible = false;
+						scene.add( physicsHelper );
+
+						loader.loadAnimation( cameraFiles, camera, function ( cameraAnimation ) {
+
+
+							new THREE.AudioLoader().load( audioFile, function ( buffer ) {
+
+								const audio = new THREE.Audio( listener ).setBuffer( buffer );
+
+								helper.add( audio, audioParams );
+								scene.add( mesh );
+
+								ready = true;
+
+							}, onProgress, null );
+
+						}, onProgress, null );
+
+						}, onProgress, null );}
+				
+						loadmodel(Model_Index);
+				//
+						
+
+				window.addEventListener( 'resize', onWindowResize );
+				function initGui(AutherInfo) {
+					const gui = new GUI();
+					
+					const Info =gui.addFolder( 'Info' );
+					const folder = gui.addFolder( 'Light' );
+					const folder_2 = gui.addFolder( 'spotLight' );
+					const folder_3 = gui.addFolder( 'Others' );
+					const controls = {};
+					const keys = [];
+					const params = {
+					color: spotLight.color.getHex(),
+					intensity: spotLight.intensity,
+					distance: spotLight.distance,
+					angle: spotLight.angle,
+					penumbra: spotLight.penumbra,
+					decay: spotLight.decay,
+					focus: spotLight.shadow.focus,
+					shadows: true
+				};
+				
+				Info.add(AutherInfo,'Music');
+				Info.add(AutherInfo,'Choreography');
+				Info.add(AutherInfo,'Motion');			
+				folder.addColor( api, 'Directional' ).onChange( setColor(dirLight.color));
+				folder.addColor( api, 'Hemisphere sky' ).onChange( setColor(hemiLight.color));
+				folder.addColor( api, 'Hemisphere ground' ).onChange( setColor(hemiLight.groundColor));
+				folder.add(dirLight.position, 'x', -100,100,0.01);
+				folder.add(dirLight.position, 'y', -100,100,0.01);
+				folder.add(dirLight.position, 'z', -100,100,0.01);
+				function setColor( color ) {
+            			return ( value  ) => {color.setHex( value );}
+       				 }
+						folder_2.add(spotLight.position, 'x', -100,100,0.01);
+				folder_2.add(spotLight.position, 'y', -100,100,0.01);
+				folder_2.add(spotLight.position, 'z', -100,100,0.01);
+				folder_2.addColor( params, 'color' ).onChange( function ( val ) {spotLight.color.setHex( val );} );
+				folder_2.add( params, 'intensity', 0, 500 ).onChange( function ( val ) {spotLight.intensity = val;} );
+				folder_2.add( params, 'distance', 0, 200 ).onChange( function ( val ) {spotLight.distance = val;} );
+				folder_2.add( params, 'angle', 0, Math.PI / 3 ).onChange( function ( val ) {spotLight.angle = val;} );
+				folder_2.add( params, 'penumbra', 0, 1 ).onChange( function ( val ) {spotLight.penumbra = val;} );
+				folder_2.add( params, 'decay', 1, 2 ).onChange( function ( val ) {spotLight.decay = val;} );
+				folder_2.add( params, 'focus', 0, 1 ).onChange( function ( val ) {spotLight.shadow.focus = val;} );
+				folder_2.add( params, 'shadows' ).onChange( function ( val ) {
+					renderer.shadowMap.enabled = val;
+					scene.traverse( function ( child ) {
+					if ( child.material ) {
+						child.material.needsUpdate = true;}
+				    } );
+				} );
+	
+				folder_3.add( api, 'animation' ).onChange( function () {
+					helper.enable( 'animation', api[ 'animation' ] );
+					audio.pause();
+					} );
+				folder_3.add( api, 'physics' ).onChange( function () {
+					helper.enable( 'physics', api[ 'physics' ] );
+					} );
+				folder_3.add( api, 'ik' ).onChange( function () {
+					ikHelper.visible = api[ 'ik' ];
+					} );
+					
+					folder.close()
+					folder_2.close()
+					folder_3.close()
+
+				}
+				initGui(AutherInfo);
+
+			}
+				
+			
+				
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				render();
+
+			}
+
+			function render() {
+
+				if ( ready ) {
+					const time = Date.now() * 0.0005;
+					helper.update( clock.getDelta() );
+					for ( var i = 0, il = lights.length; i < il; i ++ ) {
+
+					var light = lights[ i ];
+					var x = Math.sin( time + i * 5 ) * 24 * Math.abs( Math.sin( time / i / 7.0 ) );
+					var y = Math.cos( time + i * 5.0 ) * 15 * Math.abs( Math.sin( time / i / 13.0 ) ) + 12;
+					var z = Math.cos( time + i * 3.0 ) * 24 * Math.abs( Math.sin( time / i / 17.0 ) );
+					light.position.set( x, y, z );
+
+					}
+					
+
+					lightHelper.update();
+
+
+				}
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
